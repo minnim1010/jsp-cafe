@@ -52,6 +52,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
+            sudo usermod -aG docker ${{ secrets.EC2_USER }}
+            newgrp docker
             docker stop jsp-cafe || true
             docker rm jsp-cafe || true
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
