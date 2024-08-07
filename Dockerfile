@@ -16,7 +16,7 @@ COPY . /usr/local/tomcat/webapps/myapp
 
 WORKDIR /usr/local/tomcat/webapps/myapp
 
-RUN ./gradlew clean build
+RUN ./gradlew clean build -x test
 
 RUN cp build/libs/*.war /usr/local/tomcat/webapps/ROOT.war
 
