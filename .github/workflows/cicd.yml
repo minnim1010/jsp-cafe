@@ -8,6 +8,16 @@ jobs:
   CI:
     runs-on: ubuntu-20.04
 
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_DATABASE: 'cafe_test'
+          MYSQL_USER: 'test'
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -27,20 +37,27 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
-          build-args: |
-            ENV=${{ secrets.ENV }}
-            DRIVER_CLASS_NAME=${{ secrets.DRIVER_CLASS_NAME }}
-            JDBC_URL=${{ secrets.JDBC_URL }} 
-            JDBC_USER=${{ secrets.JDBC_USER }} 
-            JDBC_PASSWORD=${{ secrets.JDBC_PASSWORD }}
 
   CD:
     needs: [ CI ]
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Run container
-        run: |
-          docker stop jsp-cafe
-          docker rm jsp-cafe
-          docker run -d -p 8080:8080 --name jsp-cafe ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:latest
+      - name: Execute remote SSH commands
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            docker stop jsp-cafe || true
+            docker rm jsp-cafe || true
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+            docker run -d -p 8080:8080 --name jsp-cafe \
+              -e ENV=${{ secrets.ENV }} \
+              -e DRIVER_CLASS_NAME=${{ secrets.DRIVER_CLASS_NAME }} \
+              -e JDBC_URL=${{ secrets.JDBC_URL }} \
+              -e JDBC_USER=${{ secrets.JDBC_USER }} \
+              -e JDBC_PASSWORD=${{ secrets.JDBC_PASSWORD }} \
+              ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
