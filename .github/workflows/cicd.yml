@@ -52,12 +52,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            sudo usermod -aG docker ${{ secrets.EC2_USER }}
-            newgrp docker
-            docker stop jsp-cafe || true
-            docker rm jsp-cafe || true
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
-            docker run -d -p 8080:8080 --name jsp-cafe \
+            if sudo docker ps -a --format '{{.Names}}' | grep -Eq "^jsp-cafe\$"; then
+              sudo docker stop jsp-cafe
+              sudo docker rm jsp-cafe
+            fi
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+            sudo docker run -d -p 8080:8080 --name jsp-cafe \
               -e ENV=${{ secrets.ENV }} \
               -e DRIVER_CLASS_NAME=${{ secrets.DRIVER_CLASS_NAME }} \
               -e JDBC_URL=${{ secrets.JDBC_URL }} \
